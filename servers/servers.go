@@ -2,7 +2,6 @@ package servers
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 )
@@ -40,42 +39,32 @@ func (s *ServerList) Pop() (int, bool) {
 func RunServers(amount int) error {
 	// Server list Object
 	var myServerList ServerList
-	if err := myServerList.Populate(amount); err != nil {
-		return err
-	}
+	myServerList.Populate(amount)
 
 	var wg sync.WaitGroup
+	wg.Add(amount)
+	defer wg.Wait()
 
-	// Pop on the main goroutine so the slice is never mutated concurrently.
-	for {
-		port, ok := myServerList.Pop()
-		if !ok {
-			break
-		}
-
-		wg.Add(1)
-		go makeServers(port, &wg)
+	for i := 0; i < amount; i++ {
+		go makeServers(&myServerList, &wg)
 	}
 
-	wg.Wait()
 	return nil
 }
 
-func makeServers(port int, wg *sync.WaitGroup) {
+func makeServers(sl *ServerList, wg *sync.WaitGroup) {
+	r := http.NewServeMux()
 	defer wg.Done()
 
-	r := http.NewServeMux()
+	port, _ := sl.Pop()
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Server %d", port)
 	})
 	server := http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
+		Addr:    fmt.Sprintf(":808%d", port),
 		Handler: r,
 	}
 
-	log.Printf("server listening on :%d", port)
-	if err := server.ListenAndServe(); err != nil {
-		log.Printf("server on :%d stopped: %v", port, err)
-	}
+	server.ListenAndServe()
 }
