@@ -149,4 +149,6 @@ Zero request failures at either concurrency level.
 
 `connstress` counts much above 10,000 will start failing on a single machine — that's the OS's ephemeral port pool running out (loopback testing double-counts ports, since client-to-tollgate and tollgate-to-backend connections share the same local pool), not a limit in tollgate itself. A real deployment, with clients, tollgate, and backends on separate machines, doesn't share a port pool this way.
 
+Running `connstress` immediately after a heavy `loadtest` run can also show transient failures well below 10,000, for the same underlying reason: `loadtest`'s hundreds of thousands of short-lived connections leave a large TIME_WAIT backlog (each held port lingers for ~60s after close) that competes for the same ephemeral pool. Running `connstress` on its own, or waiting for TIME_WAIT to clear, reproduces the numbers above cleanly.
+
 `go test -race ./...` passes clean on the balancer test suite.
