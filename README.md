@@ -98,6 +98,8 @@ Ctrl+C in terminals 1 and 2 when done.
 
 Edit `examples/loadbalancertest/config.yaml` while the load balancer is running to see hot-reload pick up the change without dropping the process.
 
+`examples/loadbalancertest/config-8servers.yaml` is the same setup scaled to 8 backends, on a separate port range so it can run alongside the 4-backend config: swap it in for either terminal 2 command above (`-c examples/loadbalancertest/config-8servers.yaml`), then hit `:9180`-`:9183` instead of `:9080`-`:9083`.
+
 ## Running with Docker Compose
 
 `examples/dockercompose` runs tollgate and 4 backend containers on a shared Compose network, with backend addresses given as Compose service names (`srv-1:8081`, etc.) rather than IPs — this exercises hostname resolution end-to-end.
@@ -144,5 +146,7 @@ Zero request failures at either concurrency level.
 |-----------|-----------|-----------|
 | 5,000     | 5,000     | 1.0s      |
 | 10,000    | 10,000    | 4.4s      |
+
+`connstress` counts much above 10,000 will start failing on a single machine — that's the OS's ephemeral port pool running out (loopback testing double-counts ports, since client-to-tollgate and tollgate-to-backend connections share the same local pool), not a limit in tollgate itself. A real deployment, with clients, tollgate, and backends on separate machines, doesn't share a port pool this way.
 
 `go test -race ./...` passes clean on the balancer test suite.
