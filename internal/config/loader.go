@@ -1,12 +1,15 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/netip"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/LakshBharani/Load-Balancer/internal/backend"
 	"github.com/LakshBharani/Load-Balancer/internal/balancer"
@@ -18,6 +21,40 @@ import (
 type BuildResult struct {
 	Listeners map[uint16]*router.RoutingTable
 	Healths   map[netip.Addr]*backend.Metrics
+}
+
+// resolveHost resolves a "host:port" or "ip:port" backend address to an IP,
+// used only to key the health-metrics map (backends are still dialed by
+// their original address string, so DNS changes are picked up on every
+// connection). A hostname resolving to multiple IPs uses the first one —
+// fine for the common case of one backend behind one name, but metrics
+// reported from a different resolved IP won't be attributed correctly.
+func resolveHost(addr string) (netip.Addr, error) {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return netip.Addr{}, err
+	}
+
+	if ip, err := netip.ParseAddr(host); err == nil {
+		return ip, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+	if err != nil {
+		return netip.Addr{}, fmt.Errorf("resolve %s: %w", host, err)
+	}
+	if len(ips) == 0 {
+		return netip.Addr{}, fmt.Errorf("no addresses found for %s", host)
+	}
+
+	ip, ok := netip.AddrFromSlice(ips[0])
+	if !ok {
+		return netip.Addr{}, fmt.Errorf("unexpected address for %s", host)
+	}
+	return ip.Unmap(), nil
 }
 
 // parseClient splits "10.0.0.0/24:8080" into (10.0.0.0/24, 8080).
@@ -48,11 +85,10 @@ func Build(cfg *AppConfig) (*BuildResult, error) {
 	backends := make(map[string]*backend.Backend, len(cfg.Backends))
 
 	for _, bc := range cfg.Backends {
-		addr, err := netip.ParseAddrPort(bc.IP)
+		ip, err := resolveHost(bc.IP)
 		if err != nil {
-			return nil, fmt.Errorf("bad ip: %s", bc.IP)
+			return nil, fmt.Errorf("bad backend address %q: %w", bc.IP, err)
 		}
-		ip := addr.Addr()
 
 		m, ok := healths[ip]
 		if !ok {
@@ -60,7 +96,7 @@ func Build(cfg *AppConfig) (*BuildResult, error) {
 			healths[ip] = m
 		}
 
-		backends[bc.ID] = backend.New(bc.ID, addr, m)
+		backends[bc.ID] = backend.New(bc.ID, bc.IP, m)
 	}
 
 	listeners := make(map[uint16]*router.RoutingTable)

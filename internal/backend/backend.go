@@ -2,21 +2,25 @@ package backend
 
 import (
 	"fmt"
-	"net/netip"
 	"sync/atomic"
 )
 
 // Backend is a single proxied endpoint. Multiple Backends may share the
 // same *Metrics (same physical host, different ports), hence it's a
 // pointer field rather than owned.
+//
+// Addr is a dial address ("host:port" or "ip:port") rather than a parsed
+// netip.AddrPort so backends can be addressed by hostname (Docker/k8s
+// service names, host.docker.internal, etc.) — resolution happens per
+// dial via net.Dial, same as any other Go TCP client.
 type Backend struct {
 	ID                string
-	Addr              netip.AddrPort
+	Addr              string
 	Metrics           *Metrics
 	activeConnections atomic.Int64
 }
 
-func New(id string, addr netip.AddrPort, metrics *Metrics) *Backend {
+func New(id string, addr string, metrics *Metrics) *Backend {
 	return &Backend{ID: id, Addr: addr, Metrics: metrics}
 }
 

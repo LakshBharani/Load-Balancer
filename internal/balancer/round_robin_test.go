@@ -1,15 +1,14 @@
 package balancer
 
 import (
-	"net/netip"
+	"fmt"
 	"testing"
 
 	"github.com/LakshBharani/Load-Balancer/internal/backend"
 )
 
 func newTestBackend(id, ip string, port uint16) *backend.Backend {
-	addr := netip.AddrPortFrom(netip.MustParseAddr(ip), port)
-	return backend.New(id, addr, &backend.Metrics{})
+	return backend.New(id, fmt.Sprintf("%s:%d", ip, port), &backend.Metrics{})
 }
 
 func TestRoundRobinCyclesInOrder(t *testing.T) {

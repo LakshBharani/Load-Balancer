@@ -1,0 +1,29 @@
+healthcheck_addr: "0.0.0.0:9000"
+
+backends:
+  - id: "srv-1"
+    ip: "srv-1:8081"
+  - id: "srv-2"
+    ip: "srv-2:8082"
+  - id: "srv-3"
+    ip: "srv-3:8083"
+  - id: "srv-4"
+    ip: "srv-4:8084"
+
+clusters:
+  main-api:
+    - "srv-1"
+    - "srv-2"
+  priority-api:
+    - "srv-3"
+    - "srv-4"
+
+rules:
+  - clients:
+      - "0.0.0.0/0:9080"
+      - "::/0:9080"
+    targets:
+      - "main-api"
+      - "priority-api"
+    strategy:
+      type: "RoundRobin"

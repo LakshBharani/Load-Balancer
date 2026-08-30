@@ -23,18 +23,18 @@ go build -o bin/tollgate ./cmd/tollgate
 ./bin/tollgate -c path/to/config.yaml
 ```
 
-Or with Docker:
+Or with Docker (see [Running with Docker Compose](#running-with-docker-compose) below for a full multi-container example):
 
 ```sh
 docker build -t tollgate .
-docker run -v "path/to/config.yaml:/tollgate/config.yaml" -p 8080:8080 tollgate
+docker run -v "path/to/config.yaml:/tollgate/config.yaml" -p 9080:9080 tollgate
 ```
 
 ## Configuration
 
 By default the program looks for `config.yaml` in the working directory; override with `-c`/`-config`.
 
-- `backends`: a set of `id` + `ip:port` endpoints
+- `backends`: a set of `id` + `host:port` endpoints — `host` may be an IP or a hostname (Docker/Compose service names, `host.docker.internal`, etc.); hostnames are resolved on every dial, so DNS changes are picked up live
 - `clusters`: named groups of backend ids
 - `rules`: each rule matches one or more `client_cidr:port` patterns against a set of `targets` (backend ids or cluster names), balanced with a `strategy`
 
@@ -84,6 +84,17 @@ curl localhost:9083   # adaptive (no metrics pushed in this example, so it falls
 ```
 
 Edit `examples/loadbalancertest/config.yaml` while the load balancer is running to see hot-reload pick up the change without dropping the process.
+
+## Running with Docker Compose
+
+`examples/dockercompose` runs tollgate and 4 backend containers on a shared Compose network, with backend addresses given as Compose service names (`srv-1:8081`, etc.) rather than IPs — this exercises hostname resolution end-to-end.
+
+```sh
+cd examples/dockercompose
+docker compose up -d --build
+curl localhost:9080   # round robin across srv-1..4, resolved via Docker's embedded DNS
+docker compose down
+```
 
 ## Running tests
 

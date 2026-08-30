@@ -43,7 +43,7 @@ func TCPConnection(connID uint64, clientConn net.Conn, b *backend.Backend) error
 	ctx := newConnectionContext(connID, clientConn.RemoteAddr(), b)
 	defer ctx.close()
 
-	backendConn, err := net.Dial("tcp", b.Addr.String())
+	backendConn, err := net.Dial("tcp", b.Addr)
 	if err != nil {
 		return err
 	}

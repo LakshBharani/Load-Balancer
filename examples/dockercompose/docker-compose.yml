@@ -1,0 +1,42 @@
+services:
+  tollgate:
+    build:
+      context: ../..
+    container_name: tollgate
+    ports:
+      - "9080:9080"
+    volumes:
+      - ./config.yaml:/tollgate/config.yaml
+    depends_on:
+      - srv-1
+      - srv-2
+      - srv-3
+      - srv-4
+
+  srv-1:
+    image: python:3.12-alpine
+    working_dir: /srv
+    command: ["python3", "-m", "http.server", "8081"]
+    volumes:
+      - ./srv1:/srv
+
+  srv-2:
+    image: python:3.12-alpine
+    working_dir: /srv
+    command: ["python3", "-m", "http.server", "8082"]
+    volumes:
+      - ./srv2:/srv
+
+  srv-3:
+    image: python:3.12-alpine
+    working_dir: /srv
+    command: ["python3", "-m", "http.server", "8083"]
+    volumes:
+      - ./srv3:/srv
+
+  srv-4:
+    image: python:3.12-alpine
+    working_dir: /srv
+    command: ["python3", "-m", "http.server", "8084"]
+    volumes:
+      - ./srv4:/srv
