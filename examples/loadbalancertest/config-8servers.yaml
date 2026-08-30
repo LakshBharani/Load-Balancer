@@ -1,0 +1,65 @@
+healthcheck_addr: "127.0.0.1:9001"
+
+backends:
+  - id: "srv-1"
+    ip: "127.0.0.1:8081"
+  - id: "srv-2"
+    ip: "127.0.0.1:8082"
+  - id: "srv-3"
+    ip: "127.0.0.1:8083"
+  - id: "srv-4"
+    ip: "127.0.0.1:8084"
+  - id: "srv-5"
+    ip: "127.0.0.1:8085"
+  - id: "srv-6"
+    ip: "127.0.0.1:8086"
+  - id: "srv-7"
+    ip: "127.0.0.1:8087"
+  - id: "srv-8"
+    ip: "127.0.0.1:8088"
+
+clusters:
+  all:
+    - "srv-1"
+    - "srv-2"
+    - "srv-3"
+    - "srv-4"
+    - "srv-5"
+    - "srv-6"
+    - "srv-7"
+    - "srv-8"
+
+rules:
+  - clients:
+      - "0.0.0.0/0:9180"
+      - "::/0:9180"
+    targets:
+      - "all"
+    strategy:
+      type: "RoundRobin"
+
+  - clients:
+      - "0.0.0.0/0:9181"
+      - "::/0:9181"
+    targets:
+      - "all"
+    strategy:
+      type: "LeastConnections"
+
+  - clients:
+      - "0.0.0.0/0:9182"
+      - "::/0:9182"
+    targets:
+      - "all"
+    strategy:
+      type: "SourceIPHash"
+
+  - clients:
+      - "0.0.0.0/0:9183"
+      - "::/0:9183"
+    targets:
+      - "all"
+    strategy:
+      type: "Adaptive"
+      coefficients: [0.4, 0.3, 0.2, 0.1]
+      alpha: 0.8

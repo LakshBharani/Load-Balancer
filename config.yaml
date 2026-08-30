@@ -9,6 +9,8 @@ backends:
     ip: "127.0.0.1:8083"
   - id: "srv-4"
     ip: "127.0.0.1:8084"
+  - id: - id: "srv-5"
+    ip: "127.0.0.1:8085"
 
 clusters:
   main-api:
