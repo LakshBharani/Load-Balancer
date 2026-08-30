@@ -2,8 +2,6 @@
 
 A layer-4 (TCP) load balancer written in Go: multiple balancing strategies, YAML config with CIDR-based client matching and cluster-based backend grouping, hot-reload without dropping connections, and a health/metrics side-channel for load-aware balancing.
 
-Design informed by studying a friend's Rust implementation ([nnhphong/enginewhy](https://github.com/nnhphong/enginewhy)), rewritten independently in Go. One deviation: that project's `LeastConnections` strategy was an empty stub — this one actually implements it.
-
 ## Features
 
 - Multiple load balancing algorithms
