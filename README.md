@@ -1,8 +1,8 @@
-# enginewhy (Go)
+# tollgate
 
 A layer-4 (TCP) load balancer written in Go: multiple balancing strategies, YAML config with CIDR-based client matching and cluster-based backend grouping, hot-reload without dropping connections, and a health/metrics side-channel for load-aware balancing.
 
-Design ported from a friend's Rust implementation ([nnhphong/enginewhy](https://github.com/nnhphong/enginewhy)), rewritten independently in Go. One deviation: that project's `LeastConnections` strategy was an empty stub — this one actually implements it.
+Design informed by studying a friend's Rust implementation ([nnhphong/enginewhy](https://github.com/nnhphong/enginewhy)), rewritten independently in Go. One deviation: that project's `LeastConnections` strategy was an empty stub — this one actually implements it.
 
 ## Features
 
@@ -21,15 +21,15 @@ Design ported from a friend's Rust implementation ([nnhphong/enginewhy](https://
 Requires Go 1.24+.
 
 ```sh
-go build -o bin/enginewhy ./cmd/enginewhy
-./bin/enginewhy -c path/to/config.yaml
+go build -o bin/tollgate ./cmd/tollgate
+./bin/tollgate -c path/to/config.yaml
 ```
 
 Or with Docker:
 
 ```sh
-docker build -t enginewhy .
-docker run -v "path/to/config.yaml:/enginewhy/config.yaml" -p 8080:8080 enginewhy
+docker build -t tollgate .
+docker run -v "path/to/config.yaml:/tollgate/config.yaml" -p 8080:8080 tollgate
 ```
 
 ## Configuration
@@ -78,7 +78,7 @@ An incoming client is matched against whichever rule has the longest matching CI
 
 ```sh
 go run ./examples/loadbalancertest/backends       # starts 4 dummy HTTP backends (srv-1..4) on :8081-:8084
-go run ./cmd/enginewhy -c examples/loadbalancertest/config.yaml
+go run ./cmd/tollgate -c examples/loadbalancertest/config.yaml
 curl localhost:9080   # round robin across main-api
 curl localhost:9081   # least connections across main-api + priority-api
 curl localhost:9082   # source IP hash
@@ -100,7 +100,7 @@ Measured with the load-test tools in `bench/`, against the `examples/loadbalance
 
 ```sh
 go run ./examples/loadbalancertest/backends &
-go run ./cmd/enginewhy -c examples/loadbalancertest/config.yaml &
+go run ./cmd/tollgate -c examples/loadbalancertest/config.yaml &
 
 go run ./bench/loadtest -target http://localhost:9080 -c 200 -d 10s
 go run ./bench/connstress -addr localhost:9080 -n 10000 -hold 300ms
