@@ -91,4 +91,35 @@ Edit `examples/loadbalancertest/config.yaml` while the load balancer is running 
 
 ```sh
 go test ./...
+go test -race ./...
 ```
+
+## Benchmarks
+
+Measured with the load-test tools in `bench/`, against the `examples/loadbalancertest` setup (round-robin rule, 4 backends), on an Apple M-series machine over loopback. Loopback numbers overstate real-network throughput/latency (no NIC, no real RTT) but are representative of proxy overhead and concurrency headroom, which is what these tools isolate.
+
+```sh
+go run ./examples/loadbalancertest/backends &
+go run ./cmd/enginewhy -c examples/loadbalancertest/config.yaml &
+
+go run ./bench/loadtest -target http://localhost:9080 -c 200 -d 10s
+go run ./bench/connstress -addr localhost:9080 -n 10000 -hold 300ms
+```
+
+**Throughput/latency** (`bench/loadtest`, HTTP keep-alive, 10s runs):
+
+| Concurrency | Throughput   | p50     | p90     | p99     |
+|-------------|--------------|---------|---------|---------|
+| 200         | 84,523 req/s | 2.2ms   | 3.5ms   | 6.7ms   |
+| 1,000       | 51,575 req/s | 19.2ms  | 21.2ms  | 38.5ms  |
+
+Zero request failures at either concurrency level.
+
+**Concurrent connections** (`bench/connstress`, each connection opened simultaneously, held ~300ms, then closed):
+
+| Attempted | Succeeded | Wall time |
+|-----------|-----------|-----------|
+| 5,000     | 5,000     | 1.0s      |
+| 10,000    | 10,000    | 4.4s      |
+
+`go test -race ./...` passes clean on the balancer test suite.
