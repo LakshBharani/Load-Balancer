@@ -74,14 +74,27 @@ An incoming client is matched against whichever rule has the longest matching CI
 
 ## Local testing (no Docker needed)
 
+Needs two terminals: one for the dummy backends, one for tollgate itself, both left running.
+
+Terminal 1:
 ```sh
 go run ./examples/loadbalancertest/backends       # starts 4 dummy HTTP backends (srv-1..4) on :8081-:8084
+```
+
+Terminal 2:
+```sh
 go run ./cmd/tollgate -c examples/loadbalancertest/config.yaml
+```
+
+Terminal 3 (or any other):
+```sh
 curl localhost:9080   # round robin across main-api
 curl localhost:9081   # least connections across main-api + priority-api
 curl localhost:9082   # source IP hash
 curl localhost:9083   # adaptive (no metrics pushed in this example, so it falls back to least-loaded)
 ```
+
+Ctrl+C in terminals 1 and 2 when done.
 
 Edit `examples/loadbalancertest/config.yaml` while the load balancer is running to see hot-reload pick up the change without dropping the process.
 
@@ -92,8 +105,10 @@ Edit `examples/loadbalancertest/config.yaml` while the load balancer is running 
 ```sh
 cd examples/dockercompose
 docker compose up -d --build
-curl localhost:9080   # round robin across srv-1..4, resolved via Docker's embedded DNS
+sleep 1                # give the containers a moment to finish starting
+curl localhost:9080    # round robin across srv-1..4, resolved via Docker's embedded DNS
 docker compose down
+cd ../..
 ```
 
 ## Running tests
@@ -107,10 +122,9 @@ go test -race ./...
 
 Measured with the load-test tools in `bench/`, against the `examples/loadbalancertest` setup (round-robin rule, 4 backends), on an Apple M-series machine over loopback. Loopback numbers overstate real-network throughput/latency (no NIC, no real RTT) but are representative of proxy overhead and concurrency headroom, which is what these tools isolate.
 
-```sh
-go run ./examples/loadbalancertest/backends &
-go run ./cmd/tollgate -c examples/loadbalancertest/config.yaml &
+Needs the backends and tollgate running first (see [Local testing](#local-testing-no-docker-needed) above, terminals 1 and 2), then in a third terminal:
 
+```sh
 go run ./bench/loadtest -target http://localhost:9080 -c 200 -d 10s
 go run ./bench/connstress -addr localhost:9080 -n 10000 -hold 300ms
 ```
